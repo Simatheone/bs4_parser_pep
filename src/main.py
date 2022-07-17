@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import BASE_DIR, MAIN_DOC_URL
+from constants import BASE_DIR, MAIN_DOC_URL, PEP_CATALOG
 from outputs import control_output
 from utils import get_response, find_tag
 
@@ -22,7 +22,7 @@ def whats_new(session):
     div_with_ul = find_tag(main_div, 'div', attrs={'class': 'toctree-wrapper'})
     sections_by_python = div_with_ul.find_all('li', attrs={'class': 'toctree-l1'})
 
-    results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
+    results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     for section in tqdm(sections_by_python, desc='Парсинг ссылок'):
         version_a_tag = find_tag(section, 'a')
         href = version_a_tag['href']
@@ -100,12 +100,58 @@ def download(session):
         file.write(response.content)
     logging.info(f'Архив был загружен и сохранён: {archive_path}')
 
-def pep():
-    pass
+def pep(session):
+    response = get_response(session, PEP_CATALOG)
+    if response is None:
+        return
+
+    soup = BeautifulSoup(response.text, features='lxml')
+    peps_numerical_section = find_tag(
+        soup, 'section', attrs={'id': 'numerical-index'}
+    )
+    tbody_with_peps_info = find_tag(
+        peps_numerical_section, 'tbody'
+    )
+    peps_tr = tbody_with_peps_info.find_all('tr')
+
+    pep_0_page_statuses = []
+    total_peps = 0
+    results = [('Статус', 'Количество')]
+    parsed_statuses = dict()
+    for row in tqdm(peps_tr, desc='Парсинг страниц PEP'):
+        pep_status = find_tag(row, 'td')
+
+        if len(pep_status.text) == 1:
+            pep_0_page_statuses.append(f'PEP type: {pep_status.text}')
+        else:
+            pep_0_page_statuses.append(pep_status.text[-1])
+
+        pep_a_tag = find_tag(row, 'a', {'class': 'pep reference internal'})
+        href_to_pep_page = pep_a_tag['href']
+        full_link_to_pep_page = urljoin(PEP_CATALOG, href_to_pep_page)
+        total_peps += 1
+
+        response = get_response(session, full_link_to_pep_page)
+        if response is None:
+            continue
+
+        soup = BeautifulSoup(response.text, features='lxml')
+        dl = find_tag(soup, 'dl')
+        splitted_dl = dl.text.split('\n')
+        for index in range(2, len(splitted_dl)):
+            if splitted_dl[index] == 'Status:':
+                status = splitted_dl[index + 1]
+                parsed_statuses[status] = parsed_statuses.get(status, 0) + 1
+                break
+
+    for key, value in parsed_statuses.items():
+        results.append((key, value))
+    results.append(('Total', total_peps))
+    return results
 
 MODE_TO_FUNCTION = {
     'whats-new': whats_new,
-    'latest-version': latest_versions,
+    'latest-versions': latest_versions,
     'download': download,
     'pep': pep
 }
