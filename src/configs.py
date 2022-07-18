@@ -4,6 +4,7 @@ from logging.handlers import RotatingFileHandler
 
 from constants import BASE_DIR, LOG_DT_FORMAT, LOG_FORMAT
 
+
 def configure_argument_parser(available_modes):
     parser = argparse.ArgumentParser(description='Парсер документации Python')
     parser.add_argument(
@@ -24,6 +25,7 @@ def configure_argument_parser(available_modes):
         help='Дополнительные способы вывода данных'
     )
     return parser
+
 
 def configure_logging():
     log_dir = BASE_DIR / 'logs'
