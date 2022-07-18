@@ -147,6 +147,7 @@ dmypy.json
 http_cache.sqlite
 downloads/
 logs/
+results/
 
 # CSV files
 .csv
