@@ -19,6 +19,7 @@ pycodestyle==2.8.0
 pyflakes==2.4.0
 pyparsing==3.0.7
 pytest==7.1.0
+pluggy==1.0.0
 requests==2.27.1
 requests-cache==0.6.3
 requests-mock==1.9.3
