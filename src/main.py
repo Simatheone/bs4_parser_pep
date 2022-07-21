@@ -11,11 +11,22 @@ from constants import (
     BASE_DIR, EXPECTED_STATUS, LATEST_VERSION_TABLE_HEADER, MAIN_DOC_URL,
     PEP_CATALOG, PEP_TABLE_HEADER, WHATS_NEW_TABLE_HEADER
 )
+from exceptions import UnexpectedPEPStatus
 from outputs import control_output
-from utils import compare_peps_statuses, find_tag, get_response
+from utils import find_tag, get_response
 
 
 def whats_new(session):
+    """Function parses Main docs page, section "what-s-new-in-python".
+    After parsing the section finds link to version page and pases it.
+    While parsing the link of python version function saves version link,
+    h1 and info about the editor/author.
+
+    Returns the list of tuples like:
+        (SPECIFIC TABLE HEADER),
+        (link, h1 text, Editor, author),
+        ...
+    """
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
     response = get_response(session, whats_new_url)
     if response is None:
@@ -49,6 +60,14 @@ def whats_new(session):
 
 
 def latest_versions(session):
+    """Function parses Main docs page, sidebar.
+    While parsing function saves link to python version, python version
+    and status of python version.
+    Returns the list of tuples like:
+        (SPECIFIC TABLE HEADER),
+        (link, version, status),
+        ...
+    """
     response = get_response(session, MAIN_DOC_URL)
     if response is None:
         return
@@ -79,6 +98,10 @@ def latest_versions(session):
 
 
 def download(session):
+    """Function parses Main doc download page.
+    Function creates /download directory if it does not
+    exist and saves as zip archive A4 pdf file.
+    """
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
     response = get_response(session, downloads_url)
     if response is None:
@@ -92,17 +115,12 @@ def download(session):
     )
     pdf_a4_link = pdf_a4_tag['href']
     archive_url = urljoin(downloads_url, pdf_a4_link)
-
-    # Creating a filename
     filename = archive_url.split('/')[-1]
 
-    # Creating a new directory "downloads"
-    # Creating path to directory (merge download dir and filename)
     downloads_dir = BASE_DIR / 'downloads'
     downloads_dir.mkdir(exist_ok=True)
     archive_path = downloads_dir / filename
 
-    # Downloading ZIP-archive from "archive_url"
     response = get_response(session, archive_url)
     if response is None:
         return
@@ -112,7 +130,37 @@ def download(session):
     logging.info(f'Архив был загружен и сохранён: {archive_path}')
 
 
+def compare_peps_statuses(
+    pep_0_page_status, peps_card_status, link_to_pep_card
+):
+    """Function compares statuses from PEP0 page and PEP card.
+    If statuses are not equal function writes difference in logs.
+    """
+    if peps_card_status not in pep_0_page_status:
+        log_message = f"""
+            Несовпадающие статусы:
+            {link_to_pep_card}
+            Статус в карточке: {peps_card_status}
+            Ожидаемые статусы: {pep_0_page_status}
+        """
+        logging.info(log_message)
+
+
 def pep(session):
+    """Function parses the PEP0 page with all PEPs.
+    While parsing the PEP0 page function saves PEPs statuses, gets part
+    of a link for every PEP and parses them.
+    As a result function:
+        - counts amount of PEPs;
+        - gets statuses from page with all PEPs and PEP's card page;
+        - compares statuses and writes difference in log file;
+        - counts every status from PEP card and saves it in dict().
+    Returns the list of tuples like:
+        (SPECIFIC TABLE HEADER),
+        (PEP status, amount of that status),
+        ...
+        ('Total:', total amount of PEPs)
+    """
     response = get_response(session, PEP_CATALOG)
     if response is None:
         return
@@ -136,7 +184,6 @@ def pep(session):
 
         a_tag = find_tag(row, 'a', {'class': 'pep reference internal'})
         href_to_pep_page = a_tag['href']
-
         link_to_pep_card = urljoin(PEP_CATALOG, href_to_pep_page)
         total_peps += 1
 
@@ -155,7 +202,17 @@ def pep(session):
                 parsed_statuses[status] = parsed_statuses.get(status, 0) + 1
                 break
 
-        pep_0_page_status = EXPECTED_STATUS[pep_0_page_statuses[-1]]
+        pep_0_page_status = EXPECTED_STATUS.get(pep_0_page_statuses[-1], None)
+        if pep_0_page_status is None:
+            error_message = f"""
+                Неизвестный статус:
+                {pep_0_page_statuses[-1]}
+                Неизвестный статус обнаружен в:
+                PEP{a_tag.text}
+            """
+            logging.error(error_message)
+            raise UnexpectedPEPStatus(error_message)
+
         compare_peps_statuses(
             pep_0_page_status, current_pep_status, link_to_pep_card
         )
@@ -175,6 +232,11 @@ MODE_TO_FUNCTION = {
 
 
 def main():
+    """Function which controls the entire parser.
+    Main function sets logging configuration, caches session and
+    calls configure_argument_parser function for parsing termial
+    inputs.
+    """
     configure_logging()
     logging.info('Парсер запущен!')
 
