@@ -67,6 +67,8 @@ optional arguments:
 Вся информация по парсингу пишется в логи, уровни **INFO** и **ERROR**.
 RotatingFileHandler подчищает устаревшие логи: ```maxBytes=10 ** 6```, ```backupCount=5```.
 
+[:top: Вернуться к оглавлению](#оглавление)
+
 ---
 <details><summary>Подробнее о режимах работы парсера:</summary>
 <p>
@@ -114,6 +116,9 @@ https://www.python.org/dev/peps/pep-number
 Статус в карточке: Superseded
 Ожидаемые статусы: ['Accepted', 'Active']
 ```
+
+[:top: Вернуться к оглавлению](#оглавление)
+
 ---
 </p>
 </details>
@@ -143,3 +148,4 @@ pip install -r requirements.txt
 ```bash
 python3 main.py -h
 ```
+[:top: Вернуться к оглавлению](#оглавление)
