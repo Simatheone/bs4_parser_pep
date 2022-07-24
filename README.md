@@ -3,14 +3,14 @@
 ## Оглавление
 - [PEP Parser Project :male_detective:](#pep-parser-project-male_detective)
   - [Оглавление](#оглавление)
-  - [Дополнительные библиотеки](#дополнительные-библиотеки)
+  - [Используемые технологии](#используемые-технологии)
   - [Структура проекта](#структура-проекта)
   - [Документация парсера](#документация-парсера)
   - [Описание проекта](#описание-проекта)
   - [Запуск проекта](#запуск-проекта)
 
-## Дополнительные библиотеки
-:stew: BeautifulSoup, :bar_chart: tqdm, :calendar: prettytable, :card_index_dividers: requests-cache
+## Используемые технологии
+:snake: Python 3.8, :stew: BeautifulSoup, :bar_chart: tqdm, :calendar: prettytable, :card_index_dividers: requests-cache
 
 ## Структура проекта
 ```
